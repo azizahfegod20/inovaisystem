@@ -1,0 +1,60 @@
+# ===================
+# Frontend (Nuxt)
+# ===================
+
+# Nuxt dev/build outputs
+frontend/.output
+frontend/.data
+frontend/.nuxt
+frontend/.nitro
+frontend/.cache
+frontend/dist
+
+# Node dependencies
+frontend/node_modules
+
+# Logs
+frontend/logs
+frontend/*.log
+
+# ===================
+# Backend (Laravel)
+# ===================
+
+backend/*.log
+backend/.env
+backend/.env.backup
+backend/.env.production
+backend/.phpactor.json
+backend/.phpunit.result.cache
+backend/.fleet
+backend/.idea
+backend/.nova
+backend/.phpunit.cache
+backend/.vscode
+backend/.zed
+backend/auth.json
+backend/node_modules
+backend/public/build
+backend/public/hot
+backend/public/storage
+backend/storage/*.key
+backend/storage/pail
+backend/vendor
+backend/_ide_helper.php
+backend/Homestead.json
+backend/Homestead.yaml
+backend/Thumbs.db
+
+# ===================
+# Global
+# ===================
+
+.DS_Store
+.env
+.env.*
+!.env.example
+*.log
+.fleet
+.idea
+.history
