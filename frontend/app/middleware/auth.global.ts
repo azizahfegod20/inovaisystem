@@ -1,4 +1,6 @@
 export default defineNuxtRouteMiddleware(async (to: { path: string }) => {
+  if (import.meta.server) return
+
   const publicPages = ['/login', '/register']
   const isPublic = publicPages.includes(to.path)
 
