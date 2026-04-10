@@ -44,10 +44,21 @@ services:
       - CACHE_STORE=redis
       - SESSION_DRIVER=redis
       - QUEUE_CONNECTION=redis
+      - FRONTEND_URL=http://localhost:3000
+      - SANCTUM_STATEFUL_DOMAINS=localhost:3000,localhost:8000
+      - SESSION_DOMAIN=localhost
+      - MINIO_ENDPOINT=http://minio:9000
+      - MINIO_ACCESS_KEY=admin
+      - MINIO_SECRET_KEY=minio_secret
+      - MINIO_BUCKET=inovai-nfse
+      - MINIO_USE_PATH_STYLE=true
+      - NFSE_AMBIENTE=2
     depends_on:
       postgres:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      minio:
         condition: service_healthy
     networks:
       - inovai
@@ -88,9 +99,32 @@ services:
     networks:
       - inovai
 
+  # ── MinIO (Object Storage S3) ────────────────────────
+  minio:
+    image: quay.io/minio/minio:RELEASE.2024-01-13T07-53-03Z-cpuv1
+    container_name: inovai-minio
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: admin
+      MINIO_ROOT_PASSWORD: minio_secret
+      TZ: America/Sao_Paulo
+    volumes:
+      - miniodata:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - inovai
+
 volumes:
   pgdata:
   redisdata:
+  miniodata:
   frontend_node_modules:
   backend_vendor:
 

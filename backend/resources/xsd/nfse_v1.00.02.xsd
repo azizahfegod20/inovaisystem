@@ -1,0 +1,326 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:nfse="http://www.sped.fazenda.gov.br/nfse"
+           targetNamespace="http://www.sped.fazenda.gov.br/nfse"
+           elementFormDefault="qualified"
+           attributeFormDefault="unqualified"
+           version="1.00.02">
+
+  <!-- ============================================================ -->
+  <!-- Tipos Simples (Simple Types) -->
+  <!-- ============================================================ -->
+
+  <xs:simpleType name="TAmb">
+    <xs:annotation><xs:documentation>Tipo Ambiente: 1=Produção, 2=Homologação</xs:documentation></xs:annotation>
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="1"/>
+      <xs:enumeration value="2"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="TCodMunIBGE">
+    <xs:annotation><xs:documentation>Código do Município IBGE (7 dígitos)</xs:documentation></xs:annotation>
+    <xs:restriction base="xs:string">
+      <xs:pattern value="[0-9]{7}"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="TCnpj">
+    <xs:annotation><xs:documentation>CNPJ (14 dígitos)</xs:documentation></xs:annotation>
+    <xs:restriction base="xs:string">
+      <xs:pattern value="[0-9]{14}"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="TCpf">
+    <xs:annotation><xs:documentation>CPF (11 dígitos)</xs:documentation></xs:annotation>
+    <xs:restriction base="xs:string">
+      <xs:pattern value="[0-9]{11}"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="TSerie">
+    <xs:annotation><xs:documentation>Série da DPS (5 dígitos, faixa 00001-99999)</xs:documentation></xs:annotation>
+    <xs:restriction base="xs:string">
+      <xs:pattern value="[0-9]{5}"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="TNumDPS">
+    <xs:annotation><xs:documentation>Número da DPS (até 15 dígitos)</xs:documentation></xs:annotation>
+    <xs:restriction base="xs:string">
+      <xs:pattern value="[0-9]{1,15}"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="TIdDPS">
+    <xs:annotation><xs:documentation>Identificador da DPS (42 posições): codMun(7)+tipoInsc(1)+inscFed(14)+serie(5)+numDps(15)</xs:documentation></xs:annotation>
+    <xs:restriction base="xs:string">
+      <xs:pattern value="[0-9]{42}"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="TUf">
+    <xs:annotation><xs:documentation>Sigla da UF</xs:documentation></xs:annotation>
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="AC"/><xs:enumeration value="AL"/><xs:enumeration value="AP"/>
+      <xs:enumeration value="AM"/><xs:enumeration value="BA"/><xs:enumeration value="CE"/>
+      <xs:enumeration value="DF"/><xs:enumeration value="ES"/><xs:enumeration value="GO"/>
+      <xs:enumeration value="MA"/><xs:enumeration value="MT"/><xs:enumeration value="MS"/>
+      <xs:enumeration value="MG"/><xs:enumeration value="PA"/><xs:enumeration value="PB"/>
+      <xs:enumeration value="PR"/><xs:enumeration value="PE"/><xs:enumeration value="PI"/>
+      <xs:enumeration value="RJ"/><xs:enumeration value="RN"/><xs:enumeration value="RS"/>
+      <xs:enumeration value="RO"/><xs:enumeration value="RR"/><xs:enumeration value="SC"/>
+      <xs:enumeration value="SP"/><xs:enumeration value="SE"/><xs:enumeration value="TO"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="TInscricaoMunicipal">
+    <xs:restriction base="xs:string">
+      <xs:minLength value="1"/>
+      <xs:maxLength value="20"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="TCodigoLC116">
+    <xs:annotation><xs:documentation>Código Item LC 116/2003 (ex: 01.01)</xs:documentation></xs:annotation>
+    <xs:restriction base="xs:string">
+      <xs:minLength value="1"/>
+      <xs:maxLength value="10"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="TCodigoNBS">
+    <xs:restriction base="xs:string">
+      <xs:minLength value="1"/>
+      <xs:maxLength value="10"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="TDec15_2">
+    <xs:annotation><xs:documentation>Valor decimal 15 inteiros, 2 decimais</xs:documentation></xs:annotation>
+    <xs:restriction base="xs:decimal">
+      <xs:totalDigits value="15"/>
+      <xs:fractionDigits value="2"/>
+      <xs:minInclusive value="0"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="TDec5_4">
+    <xs:annotation><xs:documentation>Alíquota: 5 dígitos, 4 decimais</xs:documentation></xs:annotation>
+    <xs:restriction base="xs:decimal">
+      <xs:totalDigits value="5"/>
+      <xs:fractionDigits value="4"/>
+      <xs:minInclusive value="0"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="TRegimeTributario">
+    <xs:restriction base="xs:integer">
+      <xs:enumeration value="1"/><!-- Simples Nacional -->
+      <xs:enumeration value="2"/><!-- Lucro Presumido -->
+      <xs:enumeration value="3"/><!-- Lucro Real -->
+      <xs:enumeration value="4"/><!-- Tributação Normal -->
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="TRegimeEspecialTributacao">
+    <xs:restriction base="xs:integer">
+      <xs:minInclusive value="0"/>
+      <xs:maxInclusive value="6"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="TString255">
+    <xs:restriction base="xs:string">
+      <xs:minLength value="1"/>
+      <xs:maxLength value="255"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="TString500">
+    <xs:restriction base="xs:string">
+      <xs:minLength value="1"/>
+      <xs:maxLength value="500"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="TString2000">
+    <xs:restriction base="xs:string">
+      <xs:minLength value="1"/>
+      <xs:maxLength value="2000"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="TTipoInscricao">
+    <xs:restriction base="xs:integer">
+      <xs:enumeration value="1"/><!-- CPF -->
+      <xs:enumeration value="2"/><!-- CNPJ -->
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- ============================================================ -->
+  <!-- Tipos Complexos (Complex Types) -->
+  <!-- ============================================================ -->
+
+  <!-- Endereço -->
+  <xs:complexType name="TEndereco">
+    <xs:sequence>
+      <xs:element name="endNac" minOccurs="0">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="cMun" type="nfse:TCodMunIBGE"/>
+            <xs:element name="CEP" type="xs:string"/>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+      <xs:element name="xLgr" type="nfse:TString255" minOccurs="0"/>
+      <xs:element name="nro" type="xs:string" minOccurs="0"/>
+      <xs:element name="xCpl" type="xs:string" minOccurs="0"/>
+      <xs:element name="xBairro" type="xs:string" minOccurs="0"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <!-- Prestador (Emitente) -->
+  <xs:complexType name="TEmit">
+    <xs:sequence>
+      <xs:element name="CNPJ" type="nfse:TCnpj"/>
+      <xs:element name="xNome" type="nfse:TString255"/>
+      <xs:element name="xFant" type="nfse:TString255" minOccurs="0"/>
+      <xs:element name="IM" type="nfse:TInscricaoMunicipal" minOccurs="0"/>
+      <xs:element name="IE" type="xs:string" minOccurs="0"/>
+      <xs:element name="regTrib" type="nfse:TRegimeTributario"/>
+      <xs:element name="regEspTrib" type="nfse:TRegimeEspecialTributacao" minOccurs="0"/>
+      <xs:element name="end" type="nfse:TEndereco"/>
+      <xs:element name="fone" type="xs:string" minOccurs="0"/>
+      <xs:element name="email" type="xs:string" minOccurs="0"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <!-- Tomador -->
+  <xs:complexType name="TToma">
+    <xs:sequence>
+      <xs:choice>
+        <xs:element name="CNPJ" type="nfse:TCnpj"/>
+        <xs:element name="CPF" type="nfse:TCpf"/>
+      </xs:choice>
+      <xs:element name="xNome" type="nfse:TString255"/>
+      <xs:element name="IM" type="nfse:TInscricaoMunicipal" minOccurs="0"/>
+      <xs:element name="end" type="nfse:TEndereco" minOccurs="0"/>
+      <xs:element name="fone" type="xs:string" minOccurs="0"/>
+      <xs:element name="email" type="xs:string" minOccurs="0"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <!-- Serviço -->
+  <xs:complexType name="TServ">
+    <xs:sequence>
+      <xs:element name="cServ">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="cTribNac" type="nfse:TCodigoLC116"/>
+            <xs:element name="cNBS" type="nfse:TCodigoNBS" minOccurs="0"/>
+            <xs:element name="xDescServ" type="nfse:TString2000"/>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+    </xs:sequence>
+  </xs:complexType>
+
+  <!-- Valores -->
+  <xs:complexType name="TValores">
+    <xs:sequence>
+      <xs:element name="vServPrest">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="vServ" type="nfse:TDec15_2"/>
+            <xs:element name="vDeducao" type="nfse:TDec15_2" minOccurs="0"/>
+            <xs:element name="vDescIncworked" type="nfse:TDec15_2" minOccurs="0"/>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+      <xs:element name="trib">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="totTrib">
+              <xs:complexType>
+                <xs:sequence>
+                  <xs:element name="indTotTrib" type="xs:integer" minOccurs="0"/>
+                  <xs:element name="pTotTribFed" type="nfse:TDec5_4" minOccurs="0"/>
+                  <xs:element name="vTotTribFed" type="nfse:TDec15_2" minOccurs="0"/>
+                  <xs:element name="pTotTribEst" type="nfse:TDec5_4" minOccurs="0"/>
+                  <xs:element name="vTotTribEst" type="nfse:TDec15_2" minOccurs="0"/>
+                  <xs:element name="pTotTribMun" type="nfse:TDec5_4" minOccurs="0"/>
+                  <xs:element name="vTotTribMun" type="nfse:TDec15_2" minOccurs="0"/>
+                </xs:sequence>
+              </xs:complexType>
+            </xs:element>
+            <xs:element name="ISS">
+              <xs:complexType>
+                <xs:sequence>
+                  <xs:element name="aliq" type="nfse:TDec5_4"/>
+                  <xs:element name="vISS" type="nfse:TDec15_2"/>
+                  <xs:element name="tpRetISS" type="xs:integer" minOccurs="0"/>
+                </xs:sequence>
+              </xs:complexType>
+            </xs:element>
+            <xs:element name="pIR" type="nfse:TDec5_4" minOccurs="0"/>
+            <xs:element name="vRetIR" type="nfse:TDec15_2" minOccurs="0"/>
+            <xs:element name="pCSLL" type="nfse:TDec5_4" minOccurs="0"/>
+            <xs:element name="vRetCSLL" type="nfse:TDec15_2" minOccurs="0"/>
+            <xs:element name="pCOFINS" type="nfse:TDec5_4" minOccurs="0"/>
+            <xs:element name="vRetCOFINS" type="nfse:TDec15_2" minOccurs="0"/>
+            <xs:element name="pPIS" type="nfse:TDec5_4" minOccurs="0"/>
+            <xs:element name="vRetPIS" type="nfse:TDec15_2" minOccurs="0"/>
+            <xs:element name="pINSS" type="nfse:TDec5_4" minOccurs="0"/>
+            <xs:element name="vRetINSS" type="nfse:TDec15_2" minOccurs="0"/>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+    </xs:sequence>
+  </xs:complexType>
+
+  <!-- Identificação da DPS -->
+  <xs:complexType name="TIde">
+    <xs:sequence>
+      <xs:element name="cLocEmi" type="nfse:TCodMunIBGE"/>
+      <xs:element name="dhEmi" type="xs:dateTime"/>
+      <xs:element name="serie" type="nfse:TSerie"/>
+      <xs:element name="nDPS" type="nfse:TNumDPS"/>
+      <xs:element name="tpAmb" type="nfse:TAmb"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <!-- infDPS: conteúdo principal da DPS -->
+  <xs:complexType name="TInfDPS">
+    <xs:sequence>
+      <xs:element name="ide" type="nfse:TIde"/>
+      <xs:element name="emit" type="nfse:TEmit"/>
+      <xs:element name="toma" type="nfse:TToma"/>
+      <xs:element name="serv" type="nfse:TServ"/>
+      <xs:element name="valores" type="nfse:TValores"/>
+      <xs:element name="infNFSeSub" minOccurs="0">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="chSubstda" type="xs:string"/>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+    </xs:sequence>
+    <xs:attribute name="Id" type="nfse:TIdDPS" use="required"/>
+  </xs:complexType>
+
+  <!-- ============================================================ -->
+  <!-- Elemento raiz: DPS -->
+  <!-- ============================================================ -->
+
+  <xs:element name="DPS">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="infDPS" type="nfse:TInfDPS"/>
+      </xs:sequence>
+      <xs:attribute name="versao" type="xs:string" use="required" fixed="1.00.02"/>
+    </xs:complexType>
+  </xs:element>
+
+</xs:schema>

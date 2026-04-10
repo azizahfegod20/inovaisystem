@@ -7,69 +7,75 @@ const toast = useToast()
 const open = ref(false)
 
 const links = [[{
-  label: 'Home',
-  icon: 'i-lucide-house',
+  label: 'Dashboard',
+  icon: 'i-lucide-layout-dashboard',
   to: '/',
   onSelect: () => {
     open.value = false
   }
 }, {
-  label: 'Inbox',
-  icon: 'i-lucide-inbox',
-  to: '/inbox',
-  badge: '4',
+  label: 'Emitir NFS-e',
+  icon: 'i-lucide-file-plus',
+  to: '/invoices/new',
   onSelect: () => {
     open.value = false
   }
 }, {
-  label: 'Customers',
+  label: 'Notas Fiscais',
+  icon: 'i-lucide-file-text',
+  to: '/invoices',
+  onSelect: () => {
+    open.value = false
+  }
+}, {
+  label: 'Tomadores',
   icon: 'i-lucide-users',
-  to: '/customers',
+  to: '/tomadores',
   onSelect: () => {
     open.value = false
   }
 }, {
-  label: 'Settings',
+  label: 'Serviços',
+  icon: 'i-lucide-wrench',
+  to: '/services',
+  onSelect: () => {
+    open.value = false
+  }
+}, {
+  label: 'Configurações',
   to: '/settings',
   icon: 'i-lucide-settings',
-  defaultOpen: true,
+  defaultOpen: false,
   type: 'trigger',
   children: [{
-    label: 'General',
+    label: 'Empresa',
     to: '/settings',
     exact: true,
     onSelect: () => {
       open.value = false
     }
   }, {
-    label: 'Members',
+    label: 'Certificado Digital',
+    to: '/settings/certificate',
+    onSelect: () => {
+      open.value = false
+    }
+  }, {
+    label: 'Membros',
     to: '/settings/members',
-    onSelect: () => {
-      open.value = false
-    }
-  }, {
-    label: 'Notifications',
-    to: '/settings/notifications',
-    onSelect: () => {
-      open.value = false
-    }
-  }, {
-    label: 'Security',
-    to: '/settings/security',
     onSelect: () => {
       open.value = false
     }
   }]
 }], [{
-  label: 'Feedback',
-  icon: 'i-lucide-message-circle',
-  to: 'https://github.com/nuxt-ui-templates/dashboard',
+  label: 'Documentação',
+  icon: 'i-lucide-book-open',
+  to: 'https://www.gov.br/nfse',
   target: '_blank'
 }, {
-  label: 'Help & Support',
+  label: 'Suporte',
   icon: 'i-lucide-info',
-  to: 'https://github.com/nuxt-ui-templates/dashboard',
-  target: '_blank'
+  to: 'mailto:suporte@inovai.com.br'
 }]] satisfies NavigationMenuItem[][]
 
 const groups = computed(() => [{
@@ -138,6 +144,8 @@ onMounted(async () => {
           tooltip
           popover
         />
+
+        <SettingsCertificateAlert v-if="!collapsed" />
 
         <UNavigationMenu
           :collapsed="collapsed"
