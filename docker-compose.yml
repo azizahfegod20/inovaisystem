@@ -1,0 +1,99 @@
+services:
+  # ── Frontend (Nuxt) ──────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: inovai-frontend
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - frontend_node_modules:/app/node_modules
+    environment:
+      - NUXT_API_BASE_URL=http://backend:8000/api
+    depends_on:
+      - backend
+    networks:
+      - inovai
+
+  # ── Backend (Laravel) ────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: inovai-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+      - backend_vendor:/app/vendor
+    environment:
+      - APP_NAME=InovaiSystem
+      - APP_ENV=local
+      - APP_DEBUG=true
+      - APP_URL=http://localhost:8000
+      - DB_CONNECTION=pgsql
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_DATABASE=inovai
+      - DB_USERNAME=inovai
+      - DB_PASSWORD=inovai_secret
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - CACHE_STORE=redis
+      - SESSION_DRIVER=redis
+      - QUEUE_CONNECTION=redis
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - inovai
+
+  # ── PostgreSQL ───────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: inovai-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: inovai
+      POSTGRES_USER: inovai
+      POSTGRES_PASSWORD: inovai_secret
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U inovai"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - inovai
+
+  # ── Redis ────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: inovai-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - inovai
+
+volumes:
+  pgdata:
+  redisdata:
+  frontend_node_modules:
+  backend_vendor:
+
+networks:
+  inovai:
+    driver: bridge

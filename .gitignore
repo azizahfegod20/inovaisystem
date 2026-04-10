@@ -12,6 +12,7 @@ frontend/dist
 
 # Node dependencies
 frontend/node_modules
+frontend/.pnpm-store
 
 # Logs
 frontend/logs
