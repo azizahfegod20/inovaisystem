@@ -18,12 +18,24 @@ export default defineNuxtConfig({
     }
   },
 
-  routeRules: {
-    '/api/**': {
-      proxy: { to: (process.env.NUXT_PUBLIC_API_BASE || 'http://localhost:8000') + '/api/**' }
+  nitro: {
+    devProxy: {
+      '/api/': {
+        target: (process.env.NUXT_PUBLIC_API_BASE || 'http://localhost:8000') + '/api/',
+        changeOrigin: true
+      },
+      '/sanctum/': {
+        target: (process.env.NUXT_PUBLIC_API_BASE || 'http://localhost:8000') + '/sanctum/',
+        changeOrigin: true
+      }
     },
-    '/sanctum/**': {
-      proxy: { to: (process.env.NUXT_PUBLIC_API_BASE || 'http://localhost:8000') + '/sanctum/**' }
+    routeRules: {
+      '/api/**': {
+        proxy: (process.env.NUXT_PUBLIC_API_BASE || 'http://localhost:8000') + '/api/**'
+      },
+      '/sanctum/**': {
+        proxy: (process.env.NUXT_PUBLIC_API_BASE || 'http://localhost:8000') + '/sanctum/**'
+      }
     }
   },
 
