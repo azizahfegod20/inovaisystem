@@ -1,50 +1,100 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+<!--
+  Sync Impact Report
+  ==================
+  Version change: 0.0.0 → 1.0.0
+  Modified principles: N/A (initial creation)
+  Added sections: Core Principles (5), Technology Stack & Constraints, Development Workflow, Governance
+  Removed sections: N/A
+  Templates requiring updates:
+    - .specify/templates/plan-template.md ✅ compatible (Constitution Check section generic)
+    - .specify/templates/spec-template.md ✅ compatible (user story format aligns)
+    - .specify/templates/tasks-template.md ✅ compatible (phase structure aligns)
+  Follow-up TODOs: none
+-->
+
+# InovaiSystem Constitution
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. Conformidade Fiscal (NON-NEGOTIABLE)
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+- Toda funcionalidade que gere, altere ou consulte documentos fiscais MUST seguir rigorosamente o Padrão Nacional de NFS-e (SNNFSe) e o schema XSD oficial (V1.00.02).
+- XMLs MUST ser validados contra o XSD localmente antes de qualquer envio ao ADN.
+- Cálculos de impostos (ISS, retenções federais, valor líquido) MUST reproduzir exatamente as regras definidas pela legislação vigente (LC 116/2003, NT 007) e pelos parâmetros municipais.
+- Atualizações regulatórias (novas NTs, mudança de schema, IBS/CBS) MUST ser tratadas como prioridade crítica e aplicadas antes do prazo de vigência.
+- Rationale: erros fiscais geram multas, bloqueio de emissão e perda de confiança do usuário.
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+### II. Segurança por Design
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+- Certificados digitais ICP-Brasil MUST ser armazenados com criptografia AES-256 (coluna encrypted ou vault dedicado) e NEVER expostos em logs, respostas de API ou repositório.
+- Toda comunicação com APIs governamentais MUST usar mTLS com certificado válido.
+- Assinatura digital XML MUST seguir o padrão XMLDSIG (W3C) com canonicalization correta.
+- Autenticação de usuários MUST usar tokens seguros (Sanctum/JWT) com expiração configurável.
+- Logs de auditoria fiscal MUST ser imutáveis e conter: operação, usuário, timestamp, payload resumido e resultado.
+- Rationale: o sistema lida com documentos com validade jurídica e dados sensíveis de empresas.
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+### III. Testes Obrigatórios para Lógica Fiscal
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+- Toda lógica de cálculo de impostos, montagem de XML, assinatura digital e comunicação com o ADN MUST ter testes automatizados (unitários + integração).
+- Testes de regressão MUST ser criados para cada rejeição corrigida (E1235, 403, 409, etc.).
+- Validação contra XSD MUST ser coberta por testes com XMLs válidos e inválidos.
+- Testes em ambiente de Produção Restrita (homologação) MUST ser executados antes de qualquer deploy em produção.
+- Rationale: bugs fiscais são silenciosos e custosos — uma retenção calculada errada pode passar despercebida por meses.
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+### IV. Arquitetura API-First
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+- Backend (Laravel) MUST expor toda funcionalidade via API REST JSON, sem lógica de negócio no frontend.
+- Frontend (Nuxt) MUST ser um consumidor SPA da API, sem acesso direto ao banco de dados ou serviços externos.
+- Cada endpoint MUST ter validação de entrada (FormRequest), tratamento de erro padronizado e documentação (OpenAPI/Swagger).
+- Jobs assíncronos (e-mail, lote, DFe) MUST usar Laravel Queue com Redis como driver.
+- Rationale: permite futura API pública para ERPs, desacopla frontend de backend e facilita testes isolados.
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+### V. Lean & Iterativo
+
+- Funcionalidades MUST ser priorizadas por impacto no usuário (Must Have → Should Have → Nice to Have conforme PRD).
+- Cada user story MUST ser entregável e testável de forma independente.
+- Código MUST seguir YAGNI — não implementar abstrações ou features especulativas.
+- Complexidade adicional (ex: multi-tenancy com banco separado, microserviços) MUST ser justificada com dados concretos antes de ser adotada.
+- Rationale: startup com recursos limitados — entregar valor rápido e validar com usuários reais.
+
+## Technology Stack & Constraints
+
+- **Frontend**: Nuxt 4 + Nuxt UI v4 + TailwindCSS v4 + Vue 3 + TypeScript
+- **Backend**: Laravel 13 + PHP 8.3
+- **Banco de Dados**: PostgreSQL 16
+- **Cache/Filas**: Redis 7
+- **Containerização**: Docker + docker-compose
+- **Assinatura XML**: `robrichards/xmlseclibs` (PHP)
+- **Validação XSD**: `DOMDocument` nativo do PHP
+- **Idioma da interface**: Português do Brasil (pt-BR) exclusivamente
+- **Idioma do código**: variáveis, funções e classes em inglês; comentários em português quando solicitado
+- **Ambientes obrigatórios**: local (Docker), homologação (Produção Restrita ADN), produção
+
+Constraints:
+- Certificado A1 (.pfx) no MVP; A3 (token) diferido para versão futura.
+- Soft multi-tenancy (tenant_id) no MVP; banco separado apenas se comprovadamente necessário.
+- Emissão síncrona apenas (sem lote) no MVP.
+- Apenas municípios aderentes ao Padrão Nacional — sem integração com APIs municipais legadas.
+
+## Development Workflow
+
+- **Branching**: feature branches a partir de `main` (convenção: `###-feature-name`).
+- **Commits**: mensagens em português, formato: `tipo: descrição` (ex: `feat: emissão de NFS-e via ADN`).
+- **Quality gates antes de merge**:
+  1. Testes passando (PHPUnit backend + Vitest/Playwright frontend quando aplicável)
+  2. Validação de lint (Laravel Pint + ESLint)
+  3. Sem secrets ou certificados no diff
+  4. Para lógica fiscal: teste em Produção Restrita aprovado
+- **Deploy**: via Docker — build → testes → deploy. Sem deploy manual.
+- **Documentação**: PRD em `docs/PRD.md`, specs em `specs/`, constitution em `.specify/memory/`.
+- **Referência de produto**: `docs/PRD.md` é a fonte de verdade para priorização e escopo.
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+- Esta constitution é o documento máximo de governança técnica do projeto. Todas as decisões de arquitetura, priorização e qualidade MUST estar alinhadas com os princípios aqui definidos.
+- Alterações na constitution MUST ser documentadas com justificativa, versionadas (semver) e comunicadas à equipe.
+- Princípios marcados como NON-NEGOTIABLE não podem ser relaxados sem aprovação explícita do Tech Lead e registro formal.
+- Em caso de conflito entre velocidade de entrega e conformidade fiscal, conformidade fiscal sempre prevalece (Princípio I).
+- Use `docs/PRD.md` como guia de runtime para decisões de produto e priorização de features.
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+**Version**: 1.0.0 | **Ratified**: 2026-04-10 | **Last Amended**: 2026-04-10
