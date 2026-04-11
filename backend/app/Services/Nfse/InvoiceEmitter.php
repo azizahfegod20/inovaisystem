@@ -3,6 +3,9 @@
 namespace App\Services\Nfse;
 
 use App\Enums\InvoiceStatus;
+use App\Exceptions\CertificateStorageException;
+use App\Exceptions\DpsGenerationException;
+use App\Exceptions\NfseEmissionException;
 use App\Models\Company;
 use App\Models\Customer;
 use App\Models\Invoice;
@@ -10,8 +13,9 @@ use App\Models\Service;
 use App\Services\Certificate\CertificateStorage;
 use App\Services\Municipal\ParameterService;
 use App\Services\Storage\MinioService;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
-use RuntimeException;
+use Illuminate\Support\Facades\Log;
 
 class InvoiceEmitter
 {
@@ -35,23 +39,30 @@ class InvoiceEmitter
     ): Invoice {
         $municipalParams = $this->parameterService->getByIbge($company->codigo_ibge);
         if (! ($municipalParams['aderente_padrao_nacional'] ?? false)) {
-            throw new RuntimeException(
-                'O município (IBGE: ' . $company->codigo_ibge . ') não aderiu ao Padrão Nacional de NFS-e. '
-                . 'A emissão não é possível para este município.'
-            );
+            throw NfseEmissionException::municipalNotAdherent($company->codigo_ibge);
         }
 
         $certificate = $this->certStorage->getActiveCertificate($company);
 
         if (! $certificate) {
-            throw new RuntimeException('Nenhum certificado digital ativo encontrado para esta empresa.');
+            throw CertificateStorageException::notFound($company->id);
         }
 
         $pemFiles = $this->certStorage->extractPemFiles($certificate);
 
         return DB::transaction(function () use ($company, $customer, $service, $userId, $invoiceData, $chaveSubstituida, $pemFiles) {
             $dpsNumber = $this->getNextDpsNumber($company);
+
+            // Increment counter immediately inside the lock to prevent race conditions
+            $company->update(['dps_next_number' => $dpsNumber + 1]);
+
             $idDps = $this->generateIdDps($company, $dpsNumber);
+
+            Log::info('DPS number allocated', [
+                'company_id' => $company->id,
+                'dps_number' => $dpsNumber,
+                'id_dps' => $idDps,
+            ]);
 
             $existing = Invoice::where('id_dps', $idDps)->first();
             if ($existing) {
@@ -134,9 +145,7 @@ class InvoiceEmitter
 
             $validationResult = $this->xsdValidator->validate($xml);
             if (! $validationResult->isValid()) {
-                throw new RuntimeException(
-                    'XML inválido: ' . implode('; ', $validationResult->getErrors())
-                );
+                throw NfseEmissionException::xmlValidation($validationResult->getErrors());
             }
 
             $signedXml = $this->xmlSigner->sign($xml, $pemFiles['cert_pem'], $pemFiles['key_pem']);
@@ -178,10 +187,8 @@ class InvoiceEmitter
                 $errorCode = $adnResponse['error_code'] ?? 'ADN_ERROR';
                 $errorMsg = $adnResponse['message'] ?? 'Erro desconhecido';
 
-                throw new AdnRejectedException($errorCode, $errorMsg);
+                throw NfseEmissionException::adnRejected($errorCode, $errorMsg);
             }
-
-            $company->update(['dps_next_number' => $dpsNumber + 1]);
 
             return Invoice::create([
                 'company_id' => $company->id,
@@ -218,12 +225,37 @@ class InvoiceEmitter
 
     protected function getNextDpsNumber(Company $company): int
     {
-        $row = DB::table('companies')
-            ->where('id', $company->id)
-            ->lockForUpdate()
-            ->first(['dps_next_number']);
+        try {
+            $row = DB::table('companies')
+                ->where('id', $company->id)
+                ->lockForUpdate()
+                ->timeout(30)
+                ->first(['dps_next_number']);
+        } catch (QueryException $e) {
+            if (str_contains($e->getMessage(), 'lock')) {
+                throw DpsGenerationException::lockTimeout($company->id);
+            }
+            throw $e;
+        }
 
-        return (int) $row->dps_next_number;
+        $nextNumber = (int) $row->dps_next_number;
+
+        // Detect gaps for audit logging
+        if ($nextNumber > 1) {
+            $latestInvoice = Invoice::where('company_id', $company->id)
+                ->orderByDesc('dps_number')
+                ->value('dps_number');
+
+            if ($latestInvoice !== null && $nextNumber > $latestInvoice + 1) {
+                Log::info('DPS sequence gap detected', [
+                    'company_id' => $company->id,
+                    'expected' => $latestInvoice + 1,
+                    'actual' => $nextNumber,
+                ]);
+            }
+        }
+
+        return $nextNumber;
     }
 
     protected function generateIdDps(Company $company, int $dpsNumber): string
@@ -234,28 +266,21 @@ class InvoiceEmitter
         $serie = str_pad($company->dps_serie, 5, '0', STR_PAD_LEFT);
         $numDps = str_pad((string) $dpsNumber, 15, '0', STR_PAD_LEFT);
 
-        return $codMunicipio . $tipoInscricao . $inscricaoFederal . $serie . $numDps;
+        return $codMunicipio.$tipoInscricao.$inscricaoFederal.$serie.$numDps;
     }
 }
 
-class IdempotencyException extends RuntimeException
+class IdempotencyException extends NfseEmissionException
 {
     public Invoice $existingInvoice;
 
     public function __construct(Invoice $invoice)
     {
         $this->existingInvoice = $invoice;
-        parent::__construct('DPS já emitida (idempotência)');
-    }
-}
-
-class AdnRejectedException extends RuntimeException
-{
-    public string $errorCode;
-
-    public function __construct(string $errorCode, string $message)
-    {
-        $this->errorCode = $errorCode;
-        parent::__construct($message);
+        parent::__construct(
+            "DPS já emitida (idempotência) - Invoice #{$invoice->id}",
+            stage: 'idempotency_check',
+            retryable: false
+        );
     }
 }

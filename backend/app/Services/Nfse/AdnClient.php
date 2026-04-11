@@ -2,15 +2,20 @@
 
 namespace App\Services\Nfse;
 
+use App\Exceptions\NfseEmissionException;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
-use RuntimeException;
 
 class AdnClient
 {
     protected int $timeout;
+
     protected int $retryTimes;
+
     protected int $retrySleepMs;
+
     protected int $circuitBreakerThreshold = 5;
+
     protected static int $consecutiveFailures = 0;
 
     public function __construct()
@@ -29,7 +34,7 @@ class AdnClient
         try {
             $response = Http::timeout($this->timeout)
                 ->retry($this->retryTimes, $this->retrySleepMs, function ($exception) {
-                    return $exception instanceof \Illuminate\Http\Client\ConnectionException;
+                    return $exception instanceof ConnectionException;
                 })
                 ->withOptions([
                     'cert' => $certPemPath,
@@ -61,14 +66,14 @@ class AdnClient
                 'error_code' => $response->json('codigoErro') ?? $response->json('error_code') ?? 'ADN_ERROR',
                 'message' => $response->json('mensagem') ?? $response->json('message') ?? 'Erro na comunicação com ADN',
             ];
-        } catch (\Illuminate\Http\Client\ConnectionException $e) {
+        } catch (ConnectionException $e) {
             self::$consecutiveFailures++;
 
-            throw new RuntimeException('Timeout na comunicação com o ADN: ' . $e->getMessage());
+            throw NfseEmissionException::adnTimeout($e->getMessage(), $e);
         } catch (\Exception $e) {
             self::$consecutiveFailures++;
 
-            throw new RuntimeException('Erro na comunicação com o ADN: ' . $e->getMessage());
+            throw NfseEmissionException::adnTimeout($e->getMessage(), $e);
         }
     }
 
@@ -119,7 +124,7 @@ class AdnClient
             ];
         } catch (\Exception $e) {
             self::$consecutiveFailures++;
-            throw new RuntimeException('Erro ao enviar cancelamento ao ADN: ' . $e->getMessage());
+            throw NfseEmissionException::adnTimeout($e->getMessage(), $e);
         }
     }
 
@@ -151,8 +156,10 @@ class AdnClient
     protected function checkCircuitBreaker(): void
     {
         if (self::$consecutiveFailures >= $this->circuitBreakerThreshold) {
-            throw new RuntimeException(
-                'Circuit breaker ativado: muitas falhas consecutivas na comunicação com o ADN. Tente novamente em alguns minutos.'
+            throw new NfseEmissionException(
+                'Circuit breaker ativado: muitas falhas consecutivas na comunicação com o ADN. Tente novamente em alguns minutos.',
+                stage: 'circuit_breaker',
+                retryable: true
             );
         }
     }

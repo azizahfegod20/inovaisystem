@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Exceptions\CertificateStorageException;
+use App\Exceptions\DpsGenerationException;
+use App\Exceptions\NfseEmissionException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\CancelInvoiceRequest;
 use App\Http\Requests\StoreInvoiceRequest;
@@ -9,7 +12,6 @@ use App\Models\Company;
 use App\Models\Customer;
 use App\Models\Invoice;
 use App\Models\Service;
-use App\Services\Nfse\AdnRejectedException;
 use App\Services\Nfse\IdempotencyException;
 use App\Services\Nfse\InvoiceCanceller;
 use App\Services\Nfse\InvoiceEmitter;
@@ -66,19 +68,18 @@ class InvoiceController extends Controller
                 'message' => 'DPS já emitida (idempotência)',
                 'invoice_id' => $e->existingInvoice->id,
             ], 409);
-        } catch (AdnRejectedException $e) {
-            return response()->json([
-                'message' => "Rejeição ADN: {$e->errorCode} — {$e->getMessage()}",
-                'error_code' => $e->errorCode,
-            ], 422);
-        } catch (RuntimeException $e) {
-            if (str_contains($e->getMessage(), 'Timeout') || str_contains($e->getMessage(), 'Circuit breaker')) {
-                return response()->json([
-                    'message' => 'Erro de comunicação com o ADN',
-                    'error_code' => 'ADN_TIMEOUT',
-                ], 502);
-            }
+        } catch (NfseEmissionException $e) {
+            $statusCode = $e->isRetryable() ? 502 : 422;
 
+            return response()->json([
+                'message' => $e->getMessage(),
+                'stage' => $e->getStage(),
+            ], $statusCode);
+        } catch (DpsGenerationException $e) {
+            return response()->json([
+                'message' => $e->getMessage(),
+            ], 503);
+        } catch (RuntimeException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         }
     }
@@ -199,10 +200,19 @@ class InvoiceController extends Controller
                 'data_cancelamento' => $invoice->data_cancelamento->toIso8601String(),
                 'motivo_cancelamento' => $invoice->motivo_cancelamento,
             ]);
-        } catch (RuntimeException $e) {
-            $statusCode = str_contains($e->getMessage(), 'já cancelada') ? 409 : 422;
+        } catch (NfseEmissionException $e) {
+            $statusCode = match (true) {
+                $e->getStage() === 'cancel_validation' && str_contains($e->getMessage(), 'já cancelada') => 409,
+                $e->isRetryable() => 502,
+                default => 422,
+            };
 
-            return response()->json(['message' => $e->getMessage()], $statusCode);
+            return response()->json([
+                'message' => $e->getMessage(),
+                'stage' => $e->getStage(),
+            ], $statusCode);
+        } catch (CertificateStorageException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
         }
     }
 
@@ -229,8 +239,15 @@ class InvoiceController extends Controller
                 'status' => $newInvoice->status->value,
                 'replaced_invoice_id' => $invoice->id,
             ], 201);
-        } catch (RuntimeException $e) {
-            return response()->json(['message' => $e->getMessage()], 422);
+        } catch (NfseEmissionException $e) {
+            $statusCode = $e->isRetryable() ? 502 : 422;
+
+            return response()->json([
+                'message' => $e->getMessage(),
+                'stage' => $e->getStage(),
+            ], $statusCode);
+        } catch (DpsGenerationException $e) {
+            return response()->json(['message' => $e->getMessage()], 503);
         }
     }
 }

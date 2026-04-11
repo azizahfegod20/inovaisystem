@@ -7,14 +7,13 @@ use App\Enums\InvoiceStatus;
 use App\Models\Certificate;
 use App\Models\Company;
 use App\Models\Customer;
-use App\Models\Invoice;
 use App\Models\Service;
 use App\Models\User;
 use App\Services\Municipal\ParameterService;
 use App\Services\Nfse\AdnClient;
 use App\Services\Storage\MinioService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Mockery;
+use Illuminate\Support\Facades\Crypt;
 use Tests\TestCase;
 
 class InvoiceEmissionTest extends TestCase
@@ -22,8 +21,11 @@ class InvoiceEmissionTest extends TestCase
     use RefreshDatabase;
 
     protected User $user;
+
     protected Company $company;
+
     protected Customer $customer;
+
     protected Service $service;
 
     protected function setUp(): void
@@ -77,7 +79,7 @@ class InvoiceEmissionTest extends TestCase
         Certificate::create([
             'company_id' => $this->company->id,
             'pfx_content' => base64_encode($pfxContent),
-            'pfx_password' => 'test123',
+            'pfx_password' => Crypt::encryptString('test123'),
             'cnpj' => '12345678000190',
             'common_name' => 'TEST:12345678000190',
             'valid_from' => now()->subMonth(),
@@ -114,12 +116,12 @@ class InvoiceEmissionTest extends TestCase
         $response = $this->actingAs($this->user)
             ->withSession(['company_id' => $this->company->id])
             ->postJson('/api/invoices', [
-            'customer_id' => $this->customer->id,
-            'service_id' => $this->service->id,
-            'valor_servico' => 5000.00,
-            'descricao_servico' => 'Consultoria em desenvolvimento de sistemas',
-            'aliquota_iss' => 0.0500,
-        ]);
+                'customer_id' => $this->customer->id,
+                'service_id' => $this->service->id,
+                'valor_servico' => 5000.00,
+                'descricao_servico' => 'Consultoria em desenvolvimento de sistemas',
+                'aliquota_iss' => 0.0500,
+            ]);
 
         $response->assertStatus(201);
         $response->assertJsonStructure([

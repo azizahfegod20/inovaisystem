@@ -2,7 +2,8 @@
 
 namespace App\Services\Certificate;
 
-use RuntimeException;
+use App\Exceptions\CertificateException;
+use Carbon\Carbon;
 
 class CertificateParser
 {
@@ -11,26 +12,26 @@ class CertificateParser
         $certs = [];
 
         if (! openssl_pkcs12_read($pfxContent, $certs, $password)) {
-            throw new RuntimeException('Não foi possível ler o certificado. Verifique a senha.');
+            throw new CertificateException('Não foi possível ler o certificado. Verifique a senha.');
         }
 
         $certResource = openssl_x509_read($certs['cert']);
 
         if (! $certResource) {
-            throw new RuntimeException('Certificado inválido.');
+            throw new CertificateException('Certificado inválido.');
         }
 
         $certInfo = openssl_x509_parse($certResource);
 
         if (! $certInfo) {
-            throw new RuntimeException('Não foi possível extrair informações do certificado.');
+            throw new CertificateException('Não foi possível extrair informações do certificado.');
         }
 
         $commonName = $certInfo['subject']['CN'] ?? '';
         $cnpj = $this->extractCnpj($commonName, $certInfo);
 
-        $validFrom = \Carbon\Carbon::createFromTimestamp($certInfo['validFrom_time_t']);
-        $validTo = \Carbon\Carbon::createFromTimestamp($certInfo['validTo_time_t']);
+        $validFrom = Carbon::createFromTimestamp($certInfo['validFrom_time_t']);
+        $validTo = Carbon::createFromTimestamp($certInfo['validTo_time_t']);
 
         return [
             'cnpj' => $cnpj,
@@ -59,6 +60,6 @@ class CertificateParser
             return $matches[1];
         }
 
-        throw new RuntimeException('Não foi possível extrair o CNPJ do certificado.');
+        throw new CertificateException('Não foi possível extrair o CNPJ do certificado.');
     }
 }

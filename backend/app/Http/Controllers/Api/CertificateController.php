@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Exceptions\CertificateException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreCertificateRequest;
 use App\Models\Certificate;
@@ -28,7 +29,7 @@ class CertificateController extends Controller
 
         try {
             $parsed = $this->parser->parse($pfxContent, $password);
-        } catch (\RuntimeException $e) {
+        } catch (CertificateException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         }
 

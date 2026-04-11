@@ -3,10 +3,10 @@
 namespace App\Services\Nfse;
 
 use App\Enums\InvoiceStatus;
+use App\Exceptions\NfseEmissionException;
 use App\Models\Customer;
 use App\Models\Invoice;
 use App\Models\Service;
-use RuntimeException;
 
 class InvoiceReplacer
 {
@@ -18,7 +18,11 @@ class InvoiceReplacer
     public function replace(Invoice $original, array $data, int $userId): Invoice
     {
         if ($original->status !== InvoiceStatus::AUTHORIZED) {
-            throw new RuntimeException("Apenas notas autorizadas podem ser substituídas. Status atual: {$original->status->label()}");
+            throw new NfseEmissionException(
+                "Apenas notas autorizadas podem ser substituídas. Status atual: {$original->status->label()}",
+                stage: 'invoice_validation',
+                retryable: false
+            );
         }
 
         $company = $original->company;

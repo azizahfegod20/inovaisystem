@@ -2,11 +2,10 @@
 
 namespace App\Services\Nfse;
 
+use App\Exceptions\NfseEmissionException;
 use DOMDocument;
-use RobRichards\XMLSecLibs\XMLSecEnc;
 use RobRichards\XMLSecLibs\XMLSecurityDSig;
 use RobRichards\XMLSecLibs\XMLSecurityKey;
-use RuntimeException;
 
 class XmlSigner
 {
@@ -17,7 +16,7 @@ class XmlSigner
         $doc->formatOutput = false;
 
         if (! $doc->loadXML($xml)) {
-            throw new RuntimeException('XML inválido para assinatura.');
+            throw new NfseEmissionException('XML inválido para assinatura.', stage: 'xml_signing', retryable: false);
         }
 
         $infDPS = $doc->getElementsByTagNameNS(
@@ -26,10 +25,10 @@ class XmlSigner
         )->item(0);
 
         if (! $infDPS) {
-            throw new RuntimeException('Elemento infDPS não encontrado no XML.');
+            throw new NfseEmissionException('Elemento infDPS não encontrado no XML.', stage: 'xml_signing', retryable: false);
         }
 
-        $objDSig = new XMLSecurityDSig();
+        $objDSig = new XMLSecurityDSig;
         $objDSig->setCanonicalMethod(XMLSecurityDSig::EXC_C14N);
 
         $objDSig->addReference(

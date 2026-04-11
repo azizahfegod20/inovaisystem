@@ -2,13 +2,12 @@
 
 namespace App\Services\Nfse;
 
-use App\Enums\AuditOperation;
 use App\Enums\InvoiceStatus;
-use App\Models\AuditLog;
+use App\Exceptions\CertificateStorageException;
+use App\Exceptions\NfseEmissionException;
 use App\Models\Invoice;
 use App\Services\Certificate\CertificateStorage;
 use App\Services\Storage\MinioService;
-use RuntimeException;
 
 class InvoiceCanceller
 {
@@ -23,16 +22,24 @@ class InvoiceCanceller
     {
         if ($invoice->status !== InvoiceStatus::AUTHORIZED) {
             if ($invoice->status === InvoiceStatus::CANCELLED) {
-                throw new RuntimeException('Nota já cancelada');
+                throw new NfseEmissionException(
+                    'Nota já cancelada',
+                    stage: 'cancel_validation',
+                    retryable: false
+                );
             }
-            throw new RuntimeException("Apenas notas autorizadas podem ser canceladas. Status atual: {$invoice->status->label()}");
+            throw new NfseEmissionException(
+                "Apenas notas autorizadas podem ser canceladas. Status atual: {$invoice->status->label()}",
+                stage: 'cancel_validation',
+                retryable: false
+            );
         }
 
         $company = $invoice->company;
         $certificate = $this->certStorage->getActiveCertificate($company);
 
         if (! $certificate) {
-            throw new RuntimeException('Nenhum certificado ativo para cancelamento.');
+            throw CertificateStorageException::notFound($company->id);
         }
 
         $pemFiles = $this->certStorage->extractPemFiles($certificate);
@@ -81,7 +88,7 @@ class InvoiceCanceller
         $dom->appendChild($pedido);
 
         $infPedReg = $dom->createElementNS($ns, 'infPedReg');
-        $infPedReg->setAttribute('Id', 'CANC_' . $invoice->id_dps);
+        $infPedReg->setAttribute('Id', 'CANC_'.$invoice->id_dps);
         $pedido->appendChild($infPedReg);
 
         $tpEvento = $dom->createElementNS($ns, 'tpEvento', 'e101101');

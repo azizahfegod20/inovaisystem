@@ -14,6 +14,14 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->statefulApi();
 
+        $middleware->redirectGuestsTo(function (\Illuminate\Http\Request $request) {
+            if ($request->wantsJson() || $request->is('api/*')) {
+                return null;
+            }
+
+            return route('login');
+        });
+
         $middleware->alias([
             'company' => \App\Http\Middleware\EnsureCompanySelected::class,
             'company.role' => \App\Http\Middleware\CheckCompanyRole::class,
